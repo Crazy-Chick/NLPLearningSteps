@@ -72,6 +72,12 @@ class ParserModel(nn.Module):
         ###     Xavier Init: https://pytorch.org/docs/stable/nn.html#torch.nn.init.xavier_uniform_
         ###     Dropout: https://pytorch.org/docs/stable/nn.html#torch.nn.Dropout
 
+        self.embed_to_hidden = nn.Linear(self.n_features*self.embed_size, self.hidden_size)
+        nn.init.xavier_normal_(torch.Tensor(self.embed_to_hidden.weight), gain=1)
+        self.dropout = nn.Dropout(p=self.dropout_prob)
+        self.hidden_to_logits = nn.Linear(self.hidden_size, self.n_classes)
+        nn.init.xavier_normal_(torch.Tensor(self.hidden_to_logits.weight), gain=1)
+
 
         ### END YOUR CODE
 
@@ -104,6 +110,8 @@ class ParserModel(nn.Module):
         ###     Embedding Layer: https://pytorch.org/docs/stable/nn.html#torch.nn.Embedding
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
 
+        x = self.pretrained_embeddings(torch.LongTensor(t))
+        x = x.view(t.size()[0], t.size()[1]*self.embed_size)
 
         ### END YOUR CODE
         return x
@@ -142,6 +150,12 @@ class ParserModel(nn.Module):
         ### Please see the following docs for support:
         ###     ReLU: https://pytorch.org/docs/stable/nn.html?highlight=relu#torch.nn.functional.relu
 
+        embeddings = self.embedding_lookup(t)
+        hidden = self.embed_to_hidden(embeddings)
+        hidden_relu_model = nn.ReLU()
+        hidden_relu = hidden_relu_model(hidden)
+        hidden_drop = self.dropout(hidden_relu)
+        logits = self.hidden_to_logits(hidden_drop)
 
         ### END YOUR CODE
         return logits
