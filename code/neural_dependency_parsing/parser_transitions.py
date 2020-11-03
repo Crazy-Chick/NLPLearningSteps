@@ -33,7 +33,9 @@ class PartialParse(object):
         self.stack = ["ROOT"]
         self.buffer = []
         self.dependencies = []
-        
+        for words in sentence:
+            self.buffer.append(words)
+
         ### END YOUR CODE
 
 
@@ -51,7 +53,16 @@ class PartialParse(object):
         ###         1. Shift
         ###         2. Left Arc
         ###         3. Right Arc
-
+        #print(transition, "===========")
+        if (transition == "S"):
+            self.stack.append(self.buffer[0])
+            self.buffer.pop(0)
+        elif (transition == "LA"):
+            self.dependencies.append((self.stack[-1], self.stack[-2]))
+            self.stack.pop(-2)
+        elif (transition == "RA"):
+            self.dependencies.append((self.stack[-2], self.stack[-1]))
+            self.stack.pop(-1)
 
         ### END YOUR CODE
 
@@ -102,7 +113,29 @@ def minibatch_parse(sentences, model, batch_size):
     ###             contains references to the same objects. Thus, you should NOT use the `del` operator
     ###             to remove objects from the `unfinished_parses` list. This will free the underlying memory that
     ###             is being accessed by `partial_parses` and may cause your code to crash.
-
+    unfinished_parses = []
+    partial_parses = []
+    for sentence in sentences:
+        unfinished_parses.append(PartialParse(sentence))
+    i = 0
+    while (i < len(unfinished_parses)):
+        if (len(unfinished_parses[i].stack) == 1 and len(unfinished_parses[i].buffer) == 0):
+            dependencies.append(unfinished_parses[i].dependencies)
+            i += 1
+            continue
+        partial_parses = []
+        j = i
+        cnt = 0
+        while (j < len(unfinished_parses) and cnt < batch_size):
+            if (len(unfinished_parses[j].stack) == 1 and len(unfinished_parses[j].buffer) == 0):
+                j += 1
+                continue
+            cnt += 1
+            partial_parses.append(unfinished_parses[j])
+            j += 1
+        transitions = model.predict(partial_parses)
+        for j in range(len(partial_parses)):
+            partial_parses[j].parse([transitions[j]])
 
     ### END YOUR CODE
 
